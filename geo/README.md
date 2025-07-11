@@ -24,7 +24,11 @@ All payloads and responses are JSON.
 
 ## UI
 
+
 Open `/geo/ui` to access a Leaflet interface. A control panel lets you
 select one of the available endpoints, fill in the required parameters and
 execute the request. Any GeoJSON returned by the service will be rendered on
 the map.
+=======
+Open `/geo/ui` to access a simple Leaflet interface. Draw a polygon to test `/geo/within` or use the buffer form to create a circular buffer.
+

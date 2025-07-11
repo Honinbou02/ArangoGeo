@@ -6,15 +6,20 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <style>
+
     #map {height: 70vh;}
     #panel {margin-top: 10px;}
     #panel input, #panel textarea {width: 100%; margin-bottom: 4px;}
     #panel textarea {height: 60px;}
+=======
+    #map {height: 90vh;}
+
   </style>
 </head>
 <body>
   <h3>GeoEdge Demo</h3>
   <div id="map"></div>
+
   <div id="panel">
     <select id="endpoint">
       <option value="near" data-method="GET">GET /geo/near</option>
@@ -28,6 +33,9 @@
     <div id="inputs"></div>
     <button id="run-btn">Executar</button>
   </div>
+=======
+<div>Lat <input id="buf-lat" size="6"> Lon <input id="buf-lon" size="6"> Radius(m) <input id="buf-radius" size="6"> <button id="buf-btn">Buffer</button></div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <script>
@@ -46,6 +54,7 @@
     }).addTo(map);
 
     map.on(L.Draw.Event.CREATED, function (e) {
+
       drawnItems.addLayer(e.layer);
     });
 
@@ -175,6 +184,31 @@
       .then(r => r.json())
       .then(addGeo)
       .catch(err => alert(err));
+=======
+      const layer = e.layer;
+      drawnItems.addLayer(layer);
+      const geojson = layer.toGeoJSON();
+      fetch('within', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({polygon: geojson.geometry, collection: 'places'})
+      }).then(r => r.json()).then(data => {
+        L.geoJSON(data).addTo(map);
+      });
+    });
+
+    document.getElementById('buf-btn').onclick = function () {
+      const lat = parseFloat(document.getElementById('buf-lat').value);
+      const lon = parseFloat(document.getElementById('buf-lon').value);
+      const radius = parseFloat(document.getElementById('buf-radius').value);
+      fetch('buffer', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({point: {type: 'Point', coordinates: [lon, lat]}, radius: radius})
+      }).then(r => r.json()).then(d => {
+        L.geoJSON(d.buffer).addTo(map);
+      });
+
     };
   </script>
 </body>
