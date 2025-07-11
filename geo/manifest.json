@@ -6,6 +6,9 @@
   "engines": {
     "arangodb": "^3.7"
   },
+  "files": {
+    "/ui": "ui"
+  },
   "author": "",
   "license": "Apache-2.0"
 }
