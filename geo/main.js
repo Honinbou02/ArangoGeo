@@ -4,6 +4,14 @@ const router = createRouter();
 module.context.use(router);
 
 // Load routes
+
+const createRouter = require('@arangodb/foxx/router');
+const fs = require('fs');
+const path = require('path');
+
+const router = createRouter();
+
+// ROTAS BACKEND
 require('./routes/near')(router);
 require('./routes/within')(router);
 require('./routes/contains')(router);
@@ -27,3 +35,11 @@ router.get('/ui/*', function (req, res) {
     res.throw('not found', 'file not found');
   }
 });
+// ROTA UI - SERVE O HTML ESTÁTICO DO LEAFLET
+router.get('/ui', function (req, res) {
+  res.send('FUNCIONOU!');
+});
+
+
+// ATIVA AS ROTAS
+module.context.use('/', router);
