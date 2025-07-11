@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>GeoEdge UI</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <style>
+    #map {height: 90vh;}
+  </style>
+</head>
+<body>
+  <h3>GeoEdge Demo</h3>
+  <div id="map"></div>
+<div>Lat <input id="buf-lat" size="6"> Lon <input id="buf-lon" size="6"> Radius(m) <input id="buf-radius" size="6"> <button id="buf-btn">Buffer</button></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script>
+    const map = L.map('map').setView([0,0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    new L.Control.Draw({
+      draw: {marker: false, circle: false, circlemarker: false, polyline: false},
+      edit: {featureGroup: drawnItems}
+    }).addTo(map);
+
+    map.on(L.Draw.Event.CREATED, function (e) {
+      const layer = e.layer;
+      drawnItems.addLayer(layer);
+      const geojson = layer.toGeoJSON();
+      fetch('within', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({polygon: geojson.geometry, collection: 'places'})
+      }).then(r => r.json()).then(data => {
+        L.geoJSON(data).addTo(map);
+      });
+    });
+
+    document.getElementById('buf-btn').onclick = function () {
+      const lat = parseFloat(document.getElementById('buf-lat').value);
+      const lon = parseFloat(document.getElementById('buf-lon').value);
+      const radius = parseFloat(document.getElementById('buf-radius').value);
+      fetch('buffer', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({point: {type: 'Point', coordinates: [lon, lat]}, radius: radius})
+      }).then(r => r.json()).then(d => {
+        L.geoJSON(d.buffer).addTo(map);
+      });
+    };
+  </script>
+</body>
+</html>
