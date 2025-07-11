@@ -6,13 +6,36 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <style>
+
+    #map {height: 70vh;}
+    #panel {margin-top: 10px;}
+    #panel input, #panel textarea {width: 100%; margin-bottom: 4px;}
+    #panel textarea {height: 60px;}
+=======
     #map {height: 90vh;}
+
   </style>
 </head>
 <body>
   <h3>GeoEdge Demo</h3>
   <div id="map"></div>
+
+  <div id="panel">
+    <select id="endpoint">
+      <option value="near" data-method="GET">GET /geo/near</option>
+      <option value="within" data-method="POST">POST /geo/within</option>
+      <option value="contains" data-method="POST">POST /geo/contains</option>
+      <option value="distance" data-method="POST">POST /geo/distance</option>
+      <option value="buffer" data-method="POST">POST /geo/buffer</option>
+      <option value="join" data-method="POST">POST /geo/join</option>
+      <option value="simplify" data-method="POST">POST /geo/simplify</option>
+    </select>
+    <div id="inputs"></div>
+    <button id="run-btn">Executar</button>
+  </div>
+=======
 <div>Lat <input id="buf-lat" size="6"> Lon <input id="buf-lon" size="6"> Radius(m) <input id="buf-radius" size="6"> <button id="buf-btn">Buffer</button></div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <script>
@@ -31,6 +54,137 @@
     }).addTo(map);
 
     map.on(L.Draw.Event.CREATED, function (e) {
+
+      drawnItems.addLayer(e.layer);
+    });
+
+    const endpoints = {
+      near: {
+        method: 'GET',
+        fields: [
+          {name: 'lat', placeholder: 'Latitude'},
+          {name: 'lon', placeholder: 'Longitude'},
+          {name: 'radius', placeholder: 'Radius (m)'},
+          {name: 'collection', placeholder: 'Collection'}
+        ]
+      },
+      within: {
+        method: 'POST',
+        fields: [
+          {name: 'polygon', type: 'textarea', placeholder: 'Polygon GeoJSON'},
+          {name: 'collection', placeholder: 'Collection'}
+        ]
+      },
+      contains: {
+        method: 'POST',
+        fields: [
+          {name: 'point', type: 'textarea', placeholder: 'Point GeoJSON'},
+          {name: 'polygon', type: 'textarea', placeholder: 'Polygon GeoJSON'}
+        ]
+      },
+      distance: {
+        method: 'POST',
+        fields: [
+          {name: 'point1', type: 'textarea', placeholder: 'Point 1 GeoJSON'},
+          {name: 'point2', type: 'textarea', placeholder: 'Point 2 GeoJSON'}
+        ]
+      },
+      buffer: {
+        method: 'POST',
+        fields: [
+          {name: 'point', type: 'textarea', placeholder: 'Point GeoJSON'},
+          {name: 'radius', placeholder: 'Radius (m)'}
+        ]
+      },
+      join: {
+        method: 'POST',
+        fields: [
+          {name: 'collection1', placeholder: 'Collection A'},
+          {name: 'collection2', placeholder: 'Collection B'}
+        ]
+      },
+      simplify: {
+        method: 'POST',
+        fields: [
+          {name: 'polygon', type: 'textarea', placeholder: 'Polygon GeoJSON'},
+          {name: 'tolerance', placeholder: 'Tolerance'}
+        ]
+      }
+    };
+
+    const endpointSelect = document.getElementById('endpoint');
+    const inputsDiv = document.getElementById('inputs');
+
+    function renderInputs() {
+      inputsDiv.innerHTML = '';
+      const cfg = endpoints[endpointSelect.value];
+      cfg.fields.forEach(f => {
+        const wrapper = document.createElement('div');
+        const label = document.createElement('label');
+        label.textContent = f.name + ': ';
+        const input = f.type === 'textarea' ? document.createElement('textarea') : document.createElement('input');
+        input.id = 'field-' + f.name;
+        input.placeholder = f.placeholder || '';
+        wrapper.appendChild(label);
+        wrapper.appendChild(input);
+        inputsDiv.appendChild(wrapper);
+      });
+    }
+
+    endpointSelect.onchange = renderInputs;
+    renderInputs();
+
+    function parseVal(v) {
+      v = v.trim();
+      if (!v) return v;
+      if (!isNaN(v)) return parseFloat(v);
+      try { return JSON.parse(v); } catch (e) { return v; }
+    }
+
+    function docsToFeatures(docs) {
+      return {
+        type: 'FeatureCollection',
+        features: docs.map(d => ({type: 'Feature', geometry: d.location, properties: d}))
+      };
+    }
+
+    function addGeo(data) {
+      let geo = null;
+      if (Array.isArray(data)) geo = docsToFeatures(data);
+      else if (data.buffer) geo = data.buffer;
+      else if (data.polygon) geo = data.polygon;
+      else if (data.location) geo = {type: 'FeatureCollection', features: [{type: 'Feature', geometry: data.location, properties: data}]};
+      else if (data.type) geo = data;
+
+      if (geo) {
+        L.geoJSON(geo).addTo(map);
+      } else {
+        alert(JSON.stringify(data));
+      }
+    }
+
+    document.getElementById('run-btn').onclick = function () {
+      const cfg = endpoints[endpointSelect.value];
+      const params = [];
+      const body = {};
+      cfg.fields.forEach(f => {
+        const val = document.getElementById('field-' + f.name).value;
+        if (cfg.method === 'GET') {
+          params.push(f.name + '=' + encodeURIComponent(val));
+        } else {
+          body[f.name] = parseVal(val);
+        }
+      });
+      const url = endpointSelect.value + (params.length ? '?' + params.join('&') : '');
+      fetch(url, {
+        method: cfg.method,
+        headers: {'Content-Type': 'application/json'},
+        body: cfg.method === 'POST' ? JSON.stringify(body) : undefined
+      })
+      .then(r => r.json())
+      .then(addGeo)
+      .catch(err => alert(err));
+=======
       const layer = e.layer;
       drawnItems.addLayer(layer);
       const geojson = layer.toGeoJSON();
@@ -54,6 +208,7 @@
       }).then(r => r.json()).then(d => {
         L.geoJSON(d.buffer).addTo(map);
       });
+
     };
   </script>
 </body>
