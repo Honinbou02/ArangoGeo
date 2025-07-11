@@ -1,0 +1,11 @@
+{
+  "name": "geoedge",
+  "version": "1.0.0",
+  "description": "Advanced geospatial Foxx service",
+  "main": "main.js",
+  "engines": {
+    "arangodb": "^3.7"
+  },
+  "author": "",
+  "license": "Apache-2.0"
+}
