@@ -17,15 +17,9 @@ require('./routes/simplify')(router);
 
 // ROTA UI - SERVE O HTML ESTÁTICO DO LEAFLET
 router.get('/ui', function (req, res) {
-  try {
-    const filePath = path.resolve(module.context.basePath, 'ui', 'index.html');
-    const content = fs.readFileSync(filePath, 'utf-8');
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    res.send(content);
-  } catch (err) {
-    res.throw('not found', 'UI not found');
-  }
+  res.send('FUNCIONOU!');
 });
+
 
 // ATIVA AS ROTAS
 module.context.use('/', router);
